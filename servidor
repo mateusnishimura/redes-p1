@@ -2,10 +2,11 @@
 import asyncio
 from grader.tcp import Servidor
 import re
-import base64
+import queue
 
-mensagem = b''
-aux = b''
+
+buffer = queue.Queue(maxsize=1)
+
 
 def validar_nome(nome):
     return re.match(br'^[a-zA-Z][a-zA-Z0-9_-]*$', nome) is not None
@@ -20,49 +21,62 @@ def dados_recebidos(conexao, dados):
     if dados == b'':
         return sair(conexao)
 
-    global mensagem
-    global aux3
+    vazio: bool = False
 
-    contagem = dados.count(b'\n')
-    print("CONTAGEM:%i"  %contagem)
-    mensagem += dados
-    print("RECEBENDO" + str(mensagem))
-
-    aux = mensagem.decode()
-    resto = aux[5:]
-    if mensagem.endswith(b'\n') and aux[0:4] == "PING" and contagem == 1:
-        resto = resto.encode()
-        conexao.enviar(b':server PONG server :' + resto)
+    # Carrega informações remanescentes do buffer
+    if(buffer.empty()):
         mensagem = b''
+    else:
+        mensagem = buffer.get_nowait()
+    
 
-    # tem mais de uma mensagem
-    if contagem == 0:
-        aux3 = mensagem.replace(b"\n", b"")
-        aux3 += b'\n'
-        print(b"DADOS " + dados)
+    print(mensagem + b' Loaded from buffer')
 
-    if dados == b'\n':
-        print(b':server PONG server :' + aux3 + b'\n')
-        conexao.enviar(b':server PONG server :' + aux3 + b'\n')
-        mensagem = b''
+    # Executa até que todas mensagens completas disponíves tenham sido lidas
+    while(vazio != True):
 
-    if contagem > 1:
-        aux2 = mensagem.decode()
-        aux2 = aux.split("\n")
-        for x in range(len(aux2)):
-            print("AUX2:" + aux2[x])
-            payload = aux2[x]
-            payload = payload[5:]
-            payload += '\n'
-            payload = payload.encode()
-            print(payload)
-            if payload.endswith(b'\r\n') and payload != b'\n':
-                #print(b':server PONG server :' + payload)
-                conexao.enviar(b':server PONG server :' + payload)
+        # Trata os dados recebidos, salvando qualquer mensagem incompleta no buffer
+        contagem = dados.count(b'\n')
+        print("CONTAGEM:%i"  %contagem)
+
+        if contagem == 0:
+            mensagem += dados
+            buffer.put_nowait(mensagem)
+            vazio = True
+        else:
+            if contagem == 1 and dados.endswith(b'\n'):
+                mensagem += dados
+                vazio = True
+                contagem -= 1
+            else:
+                dadosDivididos = dados.split(b'\n', 1)
+                print(dadosDivididos)
+                mensagem += dadosDivididos[0] + b'\n'
+                dados = dadosDivididos[1]
+                contagem -= 1
+
+        print('\n\n\n%s\n\n\n' %mensagem)
+
+        # Com os dados recebidos podemos começar a trabalhar eles
+        if mensagem.endswith(b'\n'):
+            if mensagem.startswith(b'PING'):
+                conexao.enviar(b':server PONG server :' + mensagem.split(b' ',1)[1])
                 mensagem = b''
-            elif not payload.endswith(b'\r\n'):
-                mensagem += payload
-                print(b"MENSAGEM: " + mensagem)
+            
+            elif mensagem.startswith(b'NICK'):
+                print(mensagem)
+                nick = mensagem
+                nick = nick.split(b' ', 1)[1]
+                nick = nick.split(b'\r',1)[0]
+                print(nick)
+
+                if validar_nome(nick):
+                    conexao.enviar(b':server 001 ' + nick + b' :Welcome\r\n')
+                    conexao.enviar(b':server 422 ' + nick + b' :MOTD File is missing\r\n')
+                    mensagem = b''
+                else:
+                    conexao.enviar(b':server 432 * ' + nick + b' :Erroneous nickname\r\n')
+
 
     print(conexao, dados)
 
