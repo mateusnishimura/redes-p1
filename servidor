@@ -6,7 +6,9 @@ import queue
 
 
 buffer = queue.Queue(maxsize=1)
-
+usuarios = []
+nick_dict = []
+nickLower_dict = []
 
 def validar_nome(nome):
     return re.match(br'^[a-zA-Z][a-zA-Z0-9_-]*$', nome) is not None
@@ -64,21 +66,50 @@ def dados_recebidos(conexao, dados):
                 mensagem = b''
             
             elif mensagem.startswith(b'NICK'):
-                print(mensagem)
                 nick = mensagem
                 nick = nick.split(b' ', 1)[1]
                 nick = nick.split(b'\r',1)[0]
-                print(nick)
 
                 if validar_nome(nick):
-                    conexao.enviar(b':server 001 ' + nick + b' :Welcome\r\n')
-                    conexao.enviar(b':server 422 ' + nick + b' :MOTD File is missing\r\n')
-                    mensagem = b''
+                    if identifica_usuario(conexao): # Conexao (usuario) ja esta cadastrada
+
+                        nick_atual = identifica_usuario(conexao)
+
+                        if not nick.lower() in nickLower_dict:
+                            conexao.enviar(b':'+ nick_atual +b' NICK '+ nick +b'\r\n')
+
+                            nick_dict.remove(nick_atual)
+                            nick_dict.append(nick)
+                            nickLower_dict.remove(nick_atual.lower())
+                            nickLower_dict.append(nick.lower())
+                            mensagem = b''
+                        else:
+                            conexao.enviar(b':server 433 ' + nick_atual + b' ' + nick + b' :Nickname is already in use\r\n')
+
+                    else: # Conexao (usuario) quer se cadastrar
+
+                        if not nick.lower() in nickLower_dict:
+                            conexao.enviar(b':server 001 ' + nick + b' :Welcome\r\n')
+                            conexao.enviar(b':server 422 ' + nick + b' :MOTD File is missing\r\n')
+
+                            usuarios.append(conexao)
+                            nick_dict.append(nick)
+                            nickLower_dict.append(nick.lower())
+                            mensagem = b''
+                        else:
+                            conexao.enviar(b':server 433 * ' + nick + b' :Nickname is already in use\r\n')
+
                 else:
                     conexao.enviar(b':server 432 * ' + nick + b' :Erroneous nickname\r\n')
 
 
     print(conexao, dados)
+
+def identifica_usuario(conexao):
+    if conexao in usuarios:
+        return nick_dict[usuarios.index(conexao)]
+    else:
+        return False
 
 
 def conexao_aceita(conexao):
