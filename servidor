@@ -102,6 +102,14 @@ def dados_recebidos(conexao, dados):
                 else:
                     conexao.enviar(b':server 432 * ' + nick + b' :Erroneous nickname\r\n')
 
+            elif mensagem.startswith(b'PRIVMSG'):
+                msg_priv = mensagem.split(b' ')
+                destinatario = msg_priv[1]
+                msg = msg_priv[2][1:]
+                remetente = identifica_usuario(conexao)
+                if(destinatario in nick_dict) and (remetente in nick_dict):
+                    conexaoDestinario = usuarios[nick_dict.index(destinatario)]
+                    conexaoDestinario.enviar(b':' + remetente + b' PRIVMSG ' + destinatario + b' :' + msg)
 
     print(conexao, dados)
 
