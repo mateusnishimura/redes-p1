@@ -76,12 +76,18 @@ def dados_recebidos(conexao, dados):
                         nick_atual = identifica_usuario(conexao)
 
                         if not nick.lower() in nickLower_dict:
+
                             conexao.enviar(b':'+ nick_atual +b' NICK '+ nick +b'\r\n')
 
+                            '''
                             nick_dict.remove(nick_atual)
                             nick_dict.append(nick)
                             nickLower_dict.remove(nick_atual.lower())
                             nickLower_dict.append(nick.lower())
+                            '''
+
+                            nick_dict[nick_dict.index(nick_atual)] = nick
+                            nickLower_dict[nickLower_dict.index(nick_atual)] = nick
                             mensagem = b''
                         else:
                             conexao.enviar(b':server 433 ' + nick_atual + b' ' + nick + b' :Nickname is already in use\r\n')
@@ -107,9 +113,13 @@ def dados_recebidos(conexao, dados):
                 destinatario = msg_priv[1]
                 msg = msg_priv[2][1:]
                 remetente = identifica_usuario(conexao)
-                if(destinatario in nick_dict) and (remetente in nick_dict):
-                    conexaoDestinario = usuarios[nick_dict.index(destinatario)]
-                    conexaoDestinario.enviar(b':' + remetente + b' PRIVMSG ' + destinatario + b' :' + msg)
+                
+                if(destinatario.lower() in nickLower_dict) and (remetente.lower() in nickLower_dict):
+                    conexaoDestinario = usuarios[nickLower_dict.index(destinatario.lower())]
+                    conexaoDestinario.enviar(b':' + remetente.lower() + b' PRIVMSG ' + destinatario.lower() + b' :' + msg)
+                    mensagem = b''
+                else:
+                    mensagem = b''
 
     print(conexao, dados)
 
