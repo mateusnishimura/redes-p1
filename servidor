@@ -120,7 +120,16 @@ def dados_recebidos(conexao, dados):
                     mensagem = b''
                 else:
                     mensagem = b''
-
+            
+            elif mensagem.startswith(b'JOIN'):
+                canal = mensagem.split(b'#')
+                canal = canal[1].lower()
+                
+                if (validar_nome(canal)):
+                    conexao.enviar(b':' + 'APELIDO AQUI' + b'JOIN :' + canal)
+                else:
+                    conexao.enviar(b':server 403 canal :No such channel\r\n')
+                
     print(conexao, dados)
 
 def identifica_usuario(conexao):
