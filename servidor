@@ -171,7 +171,6 @@ def dados_recebidos(conexao, dados):
                 print(nome_canal)
                 for apelido in canais[nome_canal]:
                         conexaoApelido = usuarios[nickLower_dict.index(apelido)]
-                        print(b':' + user + b' PART ' + nome_canal + b'\r\n')
                         conexaoApelido.enviar(b':' + user + b' PART ' + nome_canal + b'\r\n')
 
                 canais[nome_canal].remove(user)
