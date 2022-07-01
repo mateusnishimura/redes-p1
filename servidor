@@ -160,6 +160,22 @@ def dados_recebidos(conexao, dados):
                 
                 mensagem = b''
 
+            elif mensagem.startswith(b'PART'):
+                nome_canal = mensagem.split(b' ')[1]
+                nome_canal = nome_canal.split(b'\r',1)[0]
+
+                user = identifica_usuario(conexao)
+                user = user.lower()
+
+                print(user)
+                print(nome_canal)
+                for apelido in canais[nome_canal]:
+                        conexaoApelido = usuarios[nickLower_dict.index(apelido)]
+                        print(b':' + user + b' PART ' + nome_canal + b'\r\n')
+                        conexaoApelido.enviar(b':' + user + b' PART ' + nome_canal + b'\r\n')
+
+                canais[nome_canal].remove(user)
+                mensagem = b''
 
     print(conexao, dados)
 
