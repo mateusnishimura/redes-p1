@@ -16,6 +16,15 @@ def validar_nome(nome):
 
 
 def sair(conexao):
+    user = identifica_usuario(conexao)
+
+    if(user != False):
+        print(canais.items())
+        for x in canais:
+            if user in canais[x]:
+                print(b':' + user + b' QUIT :Connection closed')
+                conexao.enviar(b': ' + user + b':% QUIT :Connection closed')
+
     print(conexao, 'conexão fechada')
     conexao.fechar()
 
@@ -33,14 +42,14 @@ def dados_recebidos(conexao, dados):
         mensagem = buffer.get_nowait()
     
 
-    print(mensagem + b' Loaded from buffer')
+    #print(mensagem + b' Loaded from buffer')
 
     # Executa até que todas mensagens completas disponíves tenham sido lidas
     while(vazio != True):
 
         # Trata os dados recebidos, salvando qualquer mensagem incompleta no buffer
         contagem = dados.count(b'\n')
-        print("CONTAGEM:%i"  %contagem)
+        #print("CONTAGEM:%i"  %contagem)
 
         if contagem == 0:
             mensagem += dados
@@ -53,12 +62,12 @@ def dados_recebidos(conexao, dados):
                 contagem -= 1
             else:
                 dadosDivididos = dados.split(b'\n', 1)
-                print(dadosDivididos)
+                #print(dadosDivididos)
                 mensagem += dadosDivididos[0] + b'\n'
                 dados = dadosDivididos[1]
                 contagem -= 1
 
-        print('\n\n\n%s\n\n\n' %mensagem)
+        #print('\n\n\n%s\n\n\n' %mensagem)
 
         # Com os dados recebidos podemos começar a trabalhar eles
         if mensagem.endswith(b'\n'):
@@ -155,6 +164,15 @@ def dados_recebidos(conexao, dados):
                     for apelido in canais[nome_canal]:
                         conexaoApelido = usuarios[nickLower_dict.index(apelido)]
                         conexaoApelido.enviar(b':' + apelido + b' JOIN :' + nome_canal + b'\r\n')
+                    '''
+                    nick_dict.sort()
+                    apelidos = b''
+                    for x in nick_dict:
+                        apelidos += x + b' '
+                    
+                    print(b"Apelidos:"+ apelidos)
+                    conexao.enviar(b':server 353 ' + apelido + b' = ' + nome_canal + b' :' + apelidos)
+                    '''
                 else:
                     conexao.enviar(b'server 403 ' + nome_canal + b':No such channel\r\n')
                 
