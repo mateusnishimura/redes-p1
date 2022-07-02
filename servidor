@@ -21,9 +21,19 @@ def sair(conexao):
     if(user != False):
         print(canais.items())
         for x in canais:
-            if user in canais[x]:
+            print(b"CANAL:"+x)
+            for user_canal in canais[x]:
+                if user_canal != user:
+                    conexaoNova = usuarios[nickLower_dict.index(user_canal)]
+                    print(conexaoNova)
+                    print(b"USER CANAL:" + user_canal)
+                    conexaoNova.enviar(b':' + user + b' QUIT :Connection closed\r\n') 
+                    print(b':' + user + b' QUIT :Connection closed')
+
+            """
                 print(b':' + user + b' QUIT :Connection closed')
                 conexao.enviar(b': ' + user + b':% QUIT :Connection closed')
+            """
 
     print(conexao, 'conexão fechada')
     conexao.fechar()
