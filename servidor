@@ -10,6 +10,7 @@ usuarios = []
 nick_dict = []
 nickLower_dict = []
 canais = dict()
+conexDict = dict()
 
 def validar_nome(nome):
     return re.match(br'^[a-zA-Z][a-zA-Z0-9_-]*$', nome) is not None
@@ -19,24 +20,17 @@ def sair(conexao):
     user = identifica_usuario(conexao)
 
     if(user != False):
-        print(canais.items())
-        for x in canais:
-            print(b"CANAL:"+x)
-            for user_canal in canais[x]:
-                if user_canal != user:
-                    conexaoNova = usuarios[nickLower_dict.index(user_canal)]
-                    print(conexaoNova)
-                    print(b"USER CANAL:" + user_canal)
-                    conexaoNova.enviar(b':' + user + b' QUIT :Connection closed\r\n') 
-                    print(b':' + user + b' QUIT :Connection closed')
-
-            """
-                print(b':' + user + b' QUIT :Connection closed')
-                conexao.enviar(b': ' + user + b':% QUIT :Connection closed')
-            """
+        user = user.lower()
+        for canal in canais:
+            if user in canais[canal]:
+                for apelido in canais[canal]:
+                    if(apelido != user):
+                        print(apelido)
+                        conexaoNova = conexDict[apelido]
+                        conexaoNova.enviar(b': ' + user + b' QUIT :Connection closed\r\n')
 
     print(conexao, 'conexão fechada')
-    conexao.fechar()
+    conexao.fechar()    
 
 
 def dados_recebidos(conexao, dados):
@@ -121,6 +115,7 @@ def dados_recebidos(conexao, dados):
                             usuarios.append(conexao)
                             nick_dict.append(nick)
                             nickLower_dict.append(nick.lower())
+                            conexDict[nick.lower()] = conexao
                             mensagem = b''
                         else:
                             conexao.enviar(b':server 433 * ' + nick + b' :Nickname is already in use\r\n')
@@ -164,7 +159,6 @@ def dados_recebidos(conexao, dados):
                 user = identifica_usuario(conexao)
                 user = user.lower()
 
-                print(b'NOME CANAL: ' + nome_canal)
                 if validar_nome(nome_canal[1:]):
                     if nome_canal not in canais:
                         canais[nome_canal] = []
@@ -220,4 +214,3 @@ def conexao_aceita(conexao):
 servidor = Servidor(6667)
 servidor.registrar_monitor_de_conexoes_aceitas(conexao_aceita)
 asyncio.get_event_loop().run_forever()
-
