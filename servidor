@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # commit vazio
 import asyncio
+from logging import exception
 from grader.tcp import Servidor
 import re
 import queue
@@ -16,9 +17,13 @@ conexDict = dict()
 def validar_nome(nome):
     return re.match(br'^[a-zA-Z][a-zA-Z0-9_-]*$', nome) is not None
 
-
 def sair(conexao):
+    print(conexao, 'conexão fechada')
+    conexao.fechar()
+
+def enviaMsg(conexao):
     user = identifica_usuario(conexao)
+    listaConex = list()
 
     if(user != False):
         user = user.lower()
@@ -26,16 +31,22 @@ def sair(conexao):
             if user in canais[canal]:
                 for apelido in canais[canal]:
                     if(apelido != user):
-                        print(apelido)
-                        conexaoNova = conexDict[apelido]
-                        conexaoNova.enviar(b': ' + user + b' QUIT :Connection closed\r\n')
+                        conexaoNova = identifica_conexao(apelido)
+                        if conexaoNova not in listaConex:
+                            listaConex.append(conexaoNova)
 
-    print(conexao, 'conexão fechada')
-    conexao.fechar()    
-
+    
+    for item in listaConex:
+        print(b'->->'+user)
+        print(item, identifica_usuario(item))
+        try:
+            item.enviar(b':' + apelido + b' QUIT :Connection closed\r\n')
+        except:
+            print('conexao ja fechada?!')
 
 def dados_recebidos(conexao, dados):
     if dados == b'':
+        enviaMsg(conexao)
         return sair(conexao)
 
     vazio: bool = False
@@ -54,7 +65,6 @@ def dados_recebidos(conexao, dados):
 
         # Trata os dados recebidos, salvando qualquer mensagem incompleta no buffer
         contagem = dados.count(b'\n')
-        #print("CONTAGEM:%i"  %contagem)
 
         if contagem == 0:
             mensagem += dados
@@ -71,8 +81,6 @@ def dados_recebidos(conexao, dados):
                 mensagem += dadosDivididos[0] + b'\n'
                 dados = dadosDivididos[1]
                 contagem -= 1
-
-        #print('\n\n\n%s\n\n\n' %mensagem)
 
         # Com os dados recebidos podemos começar a trabalhar eles
         if mensagem.endswith(b'\n'):
@@ -94,16 +102,13 @@ def dados_recebidos(conexao, dados):
 
                             conexao.enviar(b':'+ nick_atual +b' NICK '+ nick +b'\r\n')
 
-                            '''
-                            nick_dict.remove(nick_atual)
-                            nick_dict.append(nick)
-                            nickLower_dict.remove(nick_atual.lower())
-                            nickLower_dict.append(nick.lower())
-                            '''
+                            conexDict[nick] = conexDict[nick_atual]
 
                             nick_dict[nick_dict.index(nick_atual)] = nick
                             nickLower_dict[nickLower_dict.index(nick_atual)] = nick
                             mensagem = b''
+
+                            del conexDict[nick_atual]
                         else:
                             conexao.enviar(b':server 433 ' + nick_atual + b' ' + nick + b' :Nickname is already in use\r\n')
 
@@ -140,13 +145,13 @@ def dados_recebidos(conexao, dados):
                         for apelido in canais[destinatario]:
                             #envia para os membros do canal, exceto o remetente
                             if (apelido != remetente):
-                                conexaoApelido = usuarios[nickLower_dict.index(apelido)]
+                                conexaoApelido = identifica_conexao(apelido)
                                 conexaoApelido.enviar(b':' + remetente + b' PRIVMSG ' + destinatario + b' :' + msg)
                         mensagem = b''
 
                 else:
                     if(destinatario in nickLower_dict) and (remetente in nickLower_dict):
-                        conexaoDestinario = usuarios[nickLower_dict.index(destinatario)]
+                        conexaoDestinario = identifica_conexao(destinatario)
                         conexaoDestinario.enviar(b':' + remetente + b' PRIVMSG ' + destinatario + b' :' + msg)
                         mensagem = b''
                     else:
@@ -167,17 +172,9 @@ def dados_recebidos(conexao, dados):
                     canais[nome_canal].append(user)
 
                     for apelido in canais[nome_canal]:
-                        conexaoApelido = usuarios[nickLower_dict.index(apelido)]
+                        conexaoApelido = identifica_conexao(apelido)
                         conexaoApelido.enviar(b':' + apelido + b' JOIN :' + nome_canal + b'\r\n')
-                    '''
-                    nick_dict.sort()
-                    apelidos = b''
-                    for x in nick_dict:
-                        apelidos += x + b' '
                     
-                    print(b"Apelidos:"+ apelidos)
-                    conexao.enviar(b':server 353 ' + apelido + b' = ' + nome_canal + b' :' + apelidos)
-                    '''
                 else:
                     conexao.enviar(b'server 403 ' + nome_canal + b':No such channel\r\n')
                 
@@ -193,7 +190,7 @@ def dados_recebidos(conexao, dados):
                 print(user)
                 print(nome_canal)
                 for apelido in canais[nome_canal]:
-                        conexaoApelido = usuarios[nickLower_dict.index(apelido)]
+                        conexaoApelido = identifica_conexao(apelido)
                         conexaoApelido.enviar(b':' + user + b' PART ' + nome_canal + b'\r\n')
 
                 canais[nome_canal].remove(user)
@@ -208,9 +205,17 @@ def identifica_usuario(conexao):
         return False
 
 
+def identifica_conexao(usuario):
+    if usuario in conexDict:
+        return conexDict[usuario]
+    else:
+        return False
+
+
 def conexao_aceita(conexao):
     print(conexao, 'nova conexão')
     conexao.registrar_recebedor(dados_recebidos)
+
 
 servidor = Servidor(6667)
 servidor.registrar_monitor_de_conexoes_aceitas(conexao_aceita)
