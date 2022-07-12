@@ -200,7 +200,10 @@ def dados_recebidos(conexao, dados):
 
 def identifica_usuario(conexao):
     if conexao in usuarios:
-        return nick_dict[usuarios.index(conexao)]
+        keyList = list(conexDict.keys())
+        valueList = list(conexDict.values())
+        #return nick_dict[usuarios.index(conexao)]
+        return keyList[valueList.index(conexao)]
     else:
         return False
 
