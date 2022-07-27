@@ -37,19 +37,27 @@ def enviaMsg(conexao):
 
     
     for item in listaConex:
+        '''
+        print(listaConex)
         print(b'->->'+user)
-        print(item, identifica_usuario(item))
+        print(b':' + user + b' QUIT :Connection closed\r\n')
+        '''
         try:
-            item.enviar(b':' + apelido + b' QUIT :Connection closed\r\n')
+            item.enviar(b':' + user + b' QUIT :Connection closed\r\n')
         except:
             print('conexao ja fechada?!')
 
+    if(user != False):
+        nickLower_dict.remove(user.lower())
+
 def dados_recebidos(conexao, dados):
+    print(conexao, dados)
     if dados == b'':
+        vazio = True
         enviaMsg(conexao)
         return sair(conexao)
-
-    vazio: bool = False
+    else:
+        vazio = False
 
     # Carrega informações remanescentes do buffer
     if(buffer.empty()):
@@ -195,8 +203,6 @@ def dados_recebidos(conexao, dados):
 
                 canais[nome_canal].remove(user)
                 mensagem = b''
-
-    print(conexao, dados)
 
 def identifica_usuario(conexao):
     if conexao in usuarios:
