@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # commit vazio
 import asyncio
+from ctypes import sizeof
 from logging import exception
 from grader.tcp import Servidor
 import re
@@ -181,7 +182,27 @@ def dados_recebidos(conexao, dados):
 
                     for apelido in canais[nome_canal]:
                         conexaoApelido = identifica_conexao(apelido)
-                        conexaoApelido.enviar(b':' + apelido + b' JOIN :' + nome_canal + b'\r\n')
+                        conexaoApelido.enviar(b':' + user + b' JOIN :' + nome_canal + b'\r\n')
+                    
+                    listaMembros = b''
+                    n_membros = 0
+
+                    canais[nome_canal].sort()
+
+                    for apelido in canais[nome_canal]:
+                        if(n_membros >= 1):
+                            listaMembros += b' '
+                            
+                        listaMembros += apelido
+                        n_membros += 1
+                    
+                    if int(len(listaMembros) > 512):
+                        newLista = b''
+                        for i in range(int(len(listaMembros)) / 512 ) + 1:
+                            newLista[i] = listaMembros[i*512:(i+1)*512]
+
+                    conexao.enviar(b':server 353 ' + user + b' = ' + nome_canal + b' :' + listaMembros + b'\r\n')
+                    conexao.enviar(b':server 366 ' + user + b' ' + nome_canal + b' :End of /NAMES list.\r\n')
                     
                 else:
                     conexao.enviar(b'server 403 ' + nome_canal + b':No such channel\r\n')
