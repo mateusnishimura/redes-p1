@@ -35,14 +35,10 @@ def enviaMsg(conexao):
                         conexaoNova = identifica_conexao(apelido)
                         if conexaoNova not in listaConex:
                             listaConex.append(conexaoNova)
+                canais[canal].remove(user)
 
     
     for item in listaConex:
-        '''
-        print(listaConex)
-        print(b'->->'+user)
-        print(b':' + user + b' QUIT :Connection closed\r\n')
-        '''
         try:
             item.enviar(b':' + user + b' QUIT :Connection closed\r\n')
         except:
